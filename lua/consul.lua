@@ -58,12 +58,11 @@ do_watch = function (premature, name, consul_addr, consul_port)
         else
             headers = err
             index   = headers[3]
-            nodes   = data.Value
-            if nodes then
-                ngx.log(ngx.DEBUG, "received: '", nodes, "' [idx:", index, "]")
+            if #data > 0 then
+                ngx.log(ngx.DEBUG, "received ", #data, " node(s) [vers:", index, "]")
 
                 -- save the data exactly as we receive it in the cache
-                local ok, err = cache:set(name, nodes)
+                local ok, err = cache:set(name, cjson.encode(data))
                 if not ok then
                     ngx.log(ngx.ERR, "failed to update the cache: ", err)
                     break
@@ -102,20 +101,13 @@ function _M.random_upstream(self, name)
     math.randomseed(os.time())
 
     ngx.log(ngx.DEBUG, "getting random upstream for '", name, "'")
-    message, err = cache:get(name)
-    if message then
-        -- decode the message
-        ngx.log(ngx.DEBUG, "received: ", data)
-        --local upstreams     = message.Addresses
-        --local upstreams_num = table.getn(upstreams)
-        --local upstream_idx  = math.random(1, upstreams_num)
-        --local upstream      = upstreams[upstream_idx]
-
-        local nodes         = cjson.decode(message)
+    cached, err = cache:get(name)
+    if cached then
+        local nodes         = cjson.decode(cached)
         local upstream_idx  = math.random(1, #nodes)
         local upstream      = nodes[upstream_idx]["Address"] .. ":" .. nodes[upstream_idx]["ServicePort"]
 
-        ngx.log(ngx.DEBUG, "Random(1,", #nodes, ") = ", upstream_idx, " = ", upstream)
+        ngx.log(ngx.DEBUG, "rand(1,", #nodes, ") = ", upstream_idx, " = ", upstream)
         return upstream
     else
         ngx.log(ngx.ERR, "no upstream servers in cache")

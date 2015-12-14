@@ -26,7 +26,7 @@ server {
                 local consul = require "consul"
                 local upstream, err = consul:random_upstream("@@NAME@@")
                 if not err then
-                    ngx.var.upstream = "http://" .. upstream .. ":" .. @@INT_PORT@@
+                    ngx.var.upstream = "http://" .. upstream
                 end
             ';
 

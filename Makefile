@@ -1,4 +1,4 @@
-PUBLISH=publish_docker_nginx_consul
+PUBLISH=publish_nginx_consul
 
 .DEFAULT: all
 .PHONY: all update tests publish $(PUBLISH) clean prerequisites build
@@ -9,11 +9,11 @@ SUDO=sudo
 DOCKERHUB_USER=inercia
 DOCKER_NGINX_CONSUL_VERSION=git-$(shell git rev-parse --short=12 HEAD)
 
-DOCKER_NGINX_CONSUL_UPTODATE=.docker_nginx_consul.uptodate
+DOCKER_NGINX_CONSUL_UPTODATE=.nginx_consul.uptodate
 IMAGES_UPTODATE=$(DOCKER_NGINX_CONSUL_UPTODATE)
-DOCKER_NGINX_CONSUL_IMAGE=$(DOCKERHUB_USER)/docker-nginx-consul
+DOCKER_NGINX_CONSUL_IMAGE=$(DOCKERHUB_USER)/nginx-consul
 IMAGES=$(DOCKER_NGINX_CONSUL_IMAGE)
-DOCKER_NGINX_CONSUL_EXPORT=docker_nginx_consul.tar
+DOCKER_NGINX_CONSUL_EXPORT=nginx_consul.tar
 
 all:    $(DOCKER_NGINX_CONSUL_UPTODATE)
 dist:   $(DOCKER_NGINX_CONSUL_EXPORT)

@@ -1,24 +1,26 @@
-Reverse-proxy/load-balancer for Docker networks with Consul
-===========================================================
+Reverse-proxy/load-balancer with Consul
+=======================================
 
-Dynamic reverse proxy and load balancer for microservices running in a Docker network,
-based on [nginx](http://nginx.org) and Consul.
+Dynamic reverse proxy and load balancer for services, based on
+[nginx](http://nginx.org) and [Consul](http://www.consul.io).
 
 Scenario
 --------
 
-You have `n` webservers running in `host1`..`hostn` in containers.
+You have `n` webservers running in `host1`..`hostn`, where multiple `webserver`s
+can be running in the same `host` (usually in _containers_) at different port numbers.
 You want to have a reverse proxy running in `gateway` that load balances requests
-to all these `webserver` containers. 
+to all these `webserver`s. 
 
 Design
 ======
 
 The load-balancer is based on a Lua script that runs in the _nginx_ process and
 _watches_ a service in a Consul server. As long as your Consul server has
-up-to-date information about your containers, any container that appears with
-that name will be immediately available as an upstream server in _nginx_,
-and containers being stopped or dying will be immediately removed from this pool.
+up-to-date information about the nodes that provide that service, any node
+that offers that service will be immediately available as an upstream server
+in _nginx_, and nodes being stopped or dying will be immediately removed from
+this pool.
 
 Usage
 =====
@@ -26,14 +28,22 @@ Usage
 Running Consul
 --------------
 
-I will no try to explain how to use Consul, but as a quick-start method,
-you could run it with:
+The first thing you will need is a Consul cluster (even if the cluster is formed by
+only one node) for storing information about the nodes providing
+the service(s). These nodes must register themselves in the Consul cluster,
+either with the [Consul agent](https://www.consul.io/docs/agent/basics.html),
+through the [HTTP API](https://www.consul.io/docs/agent/http/catalog.html)
+or with the help of some external tool (for example, you can use the
+[registrator](https://github.com/gliderlabs/registrator) for services running in Docker)
+
+Please refer to the [Consul docs](https://www.consul.io/docs/index.html) for details
+on how to run and use Consul but, as a quick-start guide, you could run it with something like:
 
 ```Bash
     $ docker run -p 8400:8400 -p 8500:8500 -p 8600:53/udp -h node1 progrium/consul -server -bootstrap -ui-dir /ui
 ```
 
-Then you could check the DNS interface is usable with:
+Then you can check the DNS interface is usable with:
 
 ```Bash
     $ dig @localhost -p 8600 node1.node.consul
@@ -66,8 +76,10 @@ the API with
 
 and the Web UI at [http://127.0.0.1:8500/ui](http://127.0.0.1:8500/ui)
 
-With Weave
-----------
+With Docker and Weave
+---------------------
+
+- Launch your Consul server. Let's assume it is running at `myconsul:8500`
 
 - Launch Weave in your `host*` machines as you usually do
 ([docs](http://docs.weave.works/weave/latest_release/))
@@ -81,6 +93,22 @@ in this example):
 
 - Connect all these these peers in some way (with `weave connect`,
 with [Weave Discovery](https://github.com/weaveworks/discovery), etc)
+- Launch the [registrator](https://github.com/gliderlabs/registrator) with
+
+```Bash
+    $ docker run -d \
+        --name=registrator \
+        --net=host \
+        --volume=/var/run/docker.sock:/tmp/docker.sock \
+        gliderlabs/registrator:latest \
+            consul://myconsul:8500
+```
+
+This will automatically register and deregister services in the Consul cluster
+for any Docker container by inspecting containers as they come online, so any
+new container launched under the `webserver` name will be automatically
+registered in Consul.
+
 - Launch your `webserver`s. In this example, we use a minimal `webserver`
 that listens on port 8080:
 
@@ -88,22 +116,22 @@ that listens on port 8080:
     host1$ docker run -p 8080:8080 --rm  -ti --name webserver  adejonge/helloworld
 ```
 
-Launch as many webservers as you want, but all registered with the
-*same hostname* (`webserver`) and listening on the *same port*.
+You can launch as many webservers as you want as long as you use the
+`--name webserver` argument.
 
-- On the gateway host, also launch Weave and the reverse proxy.
+- On the gateway host, also launch Weave and the reverse proxy with:
 
 ```Bash
     gateway$ weave launch
     gateway$ eval $(weave env)
-    gateway$ docker run -p 80:80 inercia/docker-nginx-consul localhost:8500 80:webserver
+    gateway$ docker run -p 80:80 inercia/nginx-consul myconsul:8500 80:webserver
 ```
 
 You could expose and load-balance more services by adding them to the
 command line. For example:
 
 ```Bash
-    gateway$ docker run -p 80:80 -p 81:81 inercia/docker-nginx-consul localhost:8500 80:webserver 81:graphite
+    gateway$ docker run -p 80:80 -p 81:81 inercia/nginx-consul myconsul:8500 80:webserver 81:graphite
 ```
 
 - Open port 80 on the gateway and let you user request come in!
@@ -111,5 +139,6 @@ command line. For example:
 TODO
 ====
 
+- Use all the nodes returned from Consul for setting up the Nginx's upstream servers.
 
 

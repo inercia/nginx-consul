@@ -3,7 +3,7 @@
 
 CURR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-NAME="docker-nginx-consul"
+NAME="nginx-consul"
 NGINX=/usr/local/openresty/nginx/sbin/nginx
 
 # the service template and wehere it will be written to
@@ -72,7 +72,7 @@ while [ $# -gt 0 ]; do
     [ -n "$EXT_PORT" ]   || usage_fatal "no external port provided in mapping"
     [ -n "$NAME"     ]   || usage_fatal "no name provided in mapping"
 
-    SERVICE_FILE=$NGINX_SERVICES_DIR/$NAME-$EXT_PORT-$INT_PORT
+    SERVICE_FILE=$NGINX_SERVICES_DIR/$NAME-$EXT_PORT.conf
 
     log "Adding service $EXT_PORT -> $NAME:$INT_PORT"
     [ -d $NGINX_SERVICES_DIR ] || mkdir -p $NGINX_SERVICES_DIR

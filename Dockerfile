@@ -37,22 +37,11 @@ RUN apt-get update && \
 RUN ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log && \
     ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
 
-RUN     mkdir -p /home/nginx/lua/resty
+# install extra packages
+RUN  mkdir -p /home/nginx/lua/resty
+COPY vendor/*/lib/resty/*         /home/nginx/lua/resty/
 
-# install HTTP-Resty package
-RUN     cd /tmp                                                                  && \
-        wget https://github.com/pintsized/lua-resty-http/archive/master.zip      && \
-        unzip -xU master.zip                                                     && \
-        mv lua-resty-http-master/lib/resty/* /home/nginx/lua/resty/            && \
-        rm -rf lua-resty-http-master master.zip
-
-# install Consul-Resty package
-RUN     cd /tmp                                                                  && \
-        wget https://github.com/hamishforbes/lua-resty-consul/archive/master.zip && \
-        unzip -xU master.zip                                                     && \
-        mv lua-resty-consul-master/lib/resty/* /home/nginx/lua/resty/            && \
-        rm -rf lua-resty-consul-master master.zip
-
+# add our stuff
 ADD nginx.conf                    /usr/local/openresty/nginx/conf/
 ADD wrapper.sh service.template   /home/nginx/
 ADD lua                           /home/nginx/lua
